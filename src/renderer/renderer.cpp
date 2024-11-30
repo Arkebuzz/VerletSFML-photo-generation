@@ -34,8 +34,7 @@ void Renderer::initializeWorldVA()
     world_va[2].position = {solver.world_size.x, solver.world_size.y};
     world_va[3].position = {0.0f               , solver.world_size.y};
 
-    const uint8_t level = 50;
-    const sf::Color background_color{level, level, level};
+    const sf::Color background_color{(uint8_t) 49, (uint8_t) 51, (uint8_t) 56};
     world_va[0].color = background_color;
     world_va[1].color = background_color;
     world_va[2].color = background_color;

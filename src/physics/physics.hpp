@@ -5,21 +5,29 @@
 #include "engine/common/index_vector.hpp"
 #include "thread_pool/thread_pool.hpp"
 
+struct PhysicSolver;
+typedef Vec2 (*GravityFN)(Vec2, PhysicSolver &);
+Vec2 gravity_normal(Vec2 pos, PhysicSolver &s);
+Vec2 gravity_central(Vec2 pos, PhysicSolver &s);
+
 
 struct PhysicSolver
 {
     CIVector<PhysicObject> objects;
     CollisionGrid          grid;
     Vec2                   world_size;
-    Vec2                   gravity = {0.0f, 20.0f};
+    GravityFN              gravity;
+    float                  gravity_force;
 
     // Simulation solving pass count
     uint32_t        sub_steps;
     tp::ThreadPool& thread_pool;
 
-    PhysicSolver(IVec2 size, tp::ThreadPool& tp)
+    PhysicSolver(IVec2 size, tp::ThreadPool& tp, GravityFN gr = gravity_normal, float gr_force = 20)
         : grid{size.x, size.y}
         , world_size{to<float>(size.x), to<float>(size.y)}
+        , gravity(gr)
+        , gravity_force(gr_force)
         , sub_steps{8}
         , thread_pool{tp}
     {
@@ -123,14 +131,14 @@ struct PhysicSolver
         return objects.emplace_back(pos);
     }
 
-    void update(float dt)
+    void update(float dt, bool borders_collision = true)
     {
         // Perform the sub steps
         const float sub_dt = dt / static_cast<float>(sub_steps);
         for (uint32_t i(sub_steps); i--;) {
             addObjectsToGrid();
             solveCollisions();
-            updateObjects_multi(sub_dt);
+            updateObjects_multi(sub_dt, borders_collision);
         }
     }
 
@@ -148,28 +156,68 @@ struct PhysicSolver
         }
     }
 
-    void updateObjects_multi(float dt)
+    void updateObjects_multi(float dt, bool borders_collision = true)
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
-            for (uint32_t i{start}; i < end; ++i) {
-                PhysicObject& obj = objects.data[i];
-                // Add gravity
-                obj.acceleration += gravity;
-                // Apply Verlet integration
-                obj.update(dt);
-                // Apply map borders collisions
-                const float margin = 2.0f;
-                if (obj.position.x > world_size.x - margin) {
-                    obj.position.x = world_size.x - margin;
-                } else if (obj.position.x < margin) {
-                    obj.position.x = margin;
+        if (borders_collision) {
+            const float margin = 2.0f;
+
+            thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+                for (uint32_t i{start}; i < end; ++i) {
+                    PhysicObject& obj = objects.data[i];
+                    // Add gravity
+                    obj.acceleration += gravity(obj.position, *this);
+                    // Apply Verlet integration
+                    obj.update(dt);
+                    // Apply map borders collisions
+                    if (obj.position.x > world_size.x - margin) {
+                        obj.position.x = world_size.x - margin;
+                    } else if (obj.position.x < margin) {
+                        obj.position.x = margin;
+                    }
+                    if (obj.position.y > world_size.y - margin) {
+                        obj.position.y = world_size.y - margin;
+                    } else if (obj.position.y < margin) {
+                        obj.position.y = margin;
+                    }
                 }
-                if (obj.position.y > world_size.y - margin) {
-                    obj.position.y = world_size.y - margin;
-                } else if (obj.position.y < margin) {
-                    obj.position.y = margin;
+            });
+        }
+
+        else {
+            const float margin = 1.0f;
+            
+            thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+                for (uint32_t i{start}; i < end; ++i) {
+                    PhysicObject& obj = objects.data[i];
+                    // Add gravity
+                    obj.acceleration += gravity(obj.position, *this);
+                    // Apply Verlet integration
+                    obj.update(dt);
                 }
-            }
-        });
+            });
+
+            // Delete outside the borders
+            objects.remove_if([&](PhysicObject obj) {
+                return obj.position.x < margin || obj.position.y < margin || obj.position.x > world_size.x - margin || obj.position.y > world_size.y - margin;
+            });
+        }
     }
 };
+
+
+inline Vec2 gravity_normal(Vec2 pos, PhysicSolver &s) {
+    return {0, s.gravity_force};
+}
+
+inline Vec2 gravity_central(Vec2 pos, PhysicSolver &s) {
+    float x = s.world_size.x / 2 - pos.x;
+    float y = s.world_size.y / 2 - pos.y;
+    return {x * s.gravity_force, y * s.gravity_force};
+}
+
+inline Vec2 gravity_central_n(Vec2 pos, PhysicSolver &s) {
+    float x = s.world_size.x / 2 - pos.x;
+    float y = s.world_size.y / 2 - pos.y;
+    float len = std::pow(x*x + y*y, 0.5f);
+    return {x / len * s.gravity_force, y / len * s.gravity_force};
+}

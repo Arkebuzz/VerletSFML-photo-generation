@@ -89,6 +89,11 @@ public:
         m_render_context.registerCallbacks(m_event_manager);
     }
 
+    ~WindowContextHandler() {
+        m_window.~RenderWindow();
+        m_render_context.clear();
+    }
+
     [[nodiscard]]
     sf::Vector2u getWindowSize() const
     {
@@ -129,6 +134,15 @@ public:
     void setFramerateLimit(uint32_t framerate)
     {
         m_window.setFramerateLimit(framerate);
+    }
+
+    sf::Image copyScreen() const
+    {
+        sf::Vector2u windowSize = m_window.getSize(); 
+        sf::Texture texture; 
+        texture.create(windowSize.x, windowSize.y); 
+        texture.update(m_window); 
+        return texture.copyToImage();
     }
     
 private:
