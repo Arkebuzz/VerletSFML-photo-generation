@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
     bool emit = true;
     bool reverse = false;
     bool borders_collision = true;
-    bool recording = true;
+    bool recording = false;
     int delay_reverse = DELAY_REVERSE;
     int delay_destroy = DELAY_DESTROY;
     uint64_t screen_name = 0;
