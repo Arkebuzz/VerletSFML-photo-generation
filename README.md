@@ -1,7 +1,7 @@
 # Verlet Multi thread
 ![image](preview.png)
 ## USAGE AND OPTIONS
-Launch: `Verlet-Multithread [OPTIONS]`
+Launch on CMD: `Verlet-Multithread.exe -i PATH_IMAGE [OPTIONS]`
 
 ### Options:
 ```
@@ -47,7 +47,8 @@ Gravity 1 is the force of attraction to the center of the window, and the furthe
 
 Gravity 2 is the force of attraction to the center of the window, which evenly affects all objects. However, usually the result at gravity 1 is better, choose this option only if 1 does not suit you. The standard strength value is 100-200.
 
-## Compilation
+
+## COMPILATION
 
 [FFMPEG](https://ffmpeg.org/) and [CMake](https://cmake.org/) need to be installed.
 
