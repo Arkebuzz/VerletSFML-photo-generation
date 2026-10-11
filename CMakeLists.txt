@@ -4,11 +4,27 @@ project(Verlet-Multithread LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
-include(FetchContent)
-FetchContent_Declare(SFML
-    GIT_REPOSITORY https://github.com/SFML/SFML.git
-    GIT_TAG 2.6.x)
-FetchContent_MakeAvailable(SFML)
+
+# Try to find SFML on the system first
+# mostly for linux
+find_package(SFML 2.6 QUIET COMPONENTS Graphics)
+
+if(NOT SFML_FOUND)
+    # If not found, download it
+    include(FetchContent)
+    set(FETCHCONTENT_QUIET OFF)
+    
+    message(STATUS "SFML not found on system, downloading SFML - this may take a moment...")
+    
+    FetchContent_Declare(SFML
+        GIT_REPOSITORY https://github.com/SFML/SFML.git
+        GIT_TAG 2.6.x)
+    FetchContent_MakeAvailable(SFML)
+    
+    message(STATUS "SFML download complete")
+else()
+    message(STATUS "Found SFML on system at ${SFML_DIR}")
+endif()
 
 file(GLOB_RECURSE source_files
     "src/*.cpp"

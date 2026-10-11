@@ -17,7 +17,11 @@ std::vector<std::string> pr_names  {"single", "dual", "quadruple"};
 
 int main(int argc, char **argv) {
     // Setting starting parameters
-    const char *FFMPEG = "ffmpeg.exe";
+    #ifdef _WIN32
+        const char *FFMPEG = "ffmpeg.exe";
+    #else
+        const char *FFMPEG = "ffmpeg";
+    #endif
     const char *IMG = "";
     int WORLD_WIDTH = 200;
     int WORLD_HEIGHT = 200;
@@ -181,7 +185,11 @@ int main(int argc, char **argv) {
         else if (delay_destroy == -DELAY_DESTROY - 1 || solver.objects.size() == 0) {
             app.~WindowContextHandler();
             std::string command = FFMPEG;
-            command += " -r " + std::to_string(FPS) + " -i images\\%d.jpg res.mp4";
+            #ifdef _WIN32
+                 command += " -r " + std::to_string(FPS) + " -i images\\%d.jpg res.mp4";
+            #else
+                command += " -r " + std::to_string(FPS) + " -i images/%d.jpg res.mp4";
+            #endif
             system(command.c_str());
         }
         // Increasing gravity when the image is destroyed
@@ -200,7 +208,11 @@ int main(int argc, char **argv) {
         render_context.display();
 
         if (recording) {
-            app.copyScreen().saveToFile("images\\" + std::to_string(screen_name) + ".jpg");
+            #ifdef _WIN32
+                app.copyScreen().saveToFile("images\\" + std::to_string(screen_name) + ".jpg");
+            #else
+                app.copyScreen().saveToFile("images/" + std::to_string(screen_name) + ".jpg");
+            #endif
             screen_name += 1;
         }
     }
